@@ -29,7 +29,7 @@ On V1 users would be required to use trusted middlemen to bridge to SBCH because
 
  - [x]   New architecture allows users to bridge to SBCH with minimal trust
  
- Using the trust minimized bridge to SBCH would only require a few block confirmations as reorg protection and would be viable bridging method for regular users. The withdrawal from the SBCH bridge would require waiting the full voting period which is not realistic for a regular users.
+ Using the trust minimized bridge to SBCH would only require a few block confirmations as reorg protection and would be viable bridging method for regular users. The withdrawal from the SBCH bridge would require waiting the full voting period which is not realistic for regular users.
 
 To implement this new reusable architecture 3 changes are necessary
 
@@ -69,7 +69,7 @@ The OP-return `outpoint` requirement would be a solution for the miner voting wi
 
   ## Contract size
 
-The contract was tested with 5 operator and is 182 opcodes and 373 bytes in size. It could fit up to 8 operators within the limits, but adding operators might be more a security risk than a guarantee from some point upwards.
+The contract was tested with 5 operators and is 182 opcodes and 373 bytes in size. It could fit up to 8 operators within the limits, but adding operators might be more a security risk than a guarantee from some point upwards.
 
 > 5.  A total of 3 operators is perceived as too few
 
@@ -77,7 +77,7 @@ The contract was tested with 5 operator and is 182 opcodes and 373 bytes in size
 
   ## Discussion of LP markups
 
-Under V1 LPs would only bridge a large sum when there's a sufficient markup on SBCH compared to BCH. Once this happened they stop caring about the bridge until they (or someone else) can buy back the same amount of SBCH for less BCH. This would mean there would be markups in both directions which is good for the LPs but bad for the users. The system isn't great for LPs either because it is very inflexible because they need to lock up large sums with questionable security because of the voting issue. In this setup the price of SBCH could be higher and lower than the BCH price, until LPs can profitably move a large sum either way.
+Under V1 LPs would only bridge a large sum when there's a sufficient markup on SBCH compared to BCH. Once this happened they stop caring about the bridge until they (or someone else) can buy back the same amount of SBCH for less BCH. This would mean there would be markups in both directions which is good for the LPs but bad for the users. The system isn't great for LPs either because it is very inflexible because they need to lock up large sums with questionable security because of the voting issue. In this setup the price of SBCH could be higher and lower than the BCH price, until LPs can profitably move a large sum either direction.
 
 With the second version anybody would be able to bring extra BCH over to SBCH meaning the markup would be completely gone, to the benefit of the regular users. There would probably still be a markup for bridging back as this takes waiting the rather long voting period before you get back your funds. A difference in SBCH <-> BCH price enough to cover this waiting period sets the predictable exchange range.
 Price BCH >= Price SBCH >= Price BCH - waiting cost
