@@ -79,7 +79,7 @@ The contract was tested with 5 operator and is 182 opcodes and 373 bytes in size
 
 Under V1 LPs would only bridge a large sum when there's a sufficient markup on SBCH compared to BCH. Once this happened they stop caring about the bridge until they (or someone else) can buy back the same amount of SBCH for less BCH. This would mean there would be markups in both directions which is good for the LPs but bad for the users. The system isn't great for LPs either because it is very inflexible because they need to lock up large sums with questionable security because of the voting issue. In this setup the price of SBCH could be higher and lower than the BCH price, until LPs can profitably move a large sum either way.
 
-With the second version anybody would be able to bring extra BCH over to SBCH meaning the markup would be completely gone, to the benefit of the regular users. There would probably still be a markup for bridging back as this take waiting the rather long voting period before you get back your funds. A difference in SBCH <-> BCH price enough to cover this waiting period sets the predictable exchange range.
+With the second version anybody would be able to bring extra BCH over to SBCH meaning the markup would be completely gone, to the benefit of the regular users. There would probably still be a markup for bridging back as this takes waiting the rather long voting period before you get back your funds. A difference in SBCH <-> BCH price enough to cover this waiting period sets the predictable exchange range.
 Price BCH >= Price SBCH >= Price BCH - waiting cost
 
 Where first the markups came from the LPs privileged position of passing the high minimum threshold & maybe having direct miner connections for safe voting, markups now just come from the fact that the withdrawal process with voting takes time.
@@ -94,11 +94,11 @@ Depending on miner software this might or might not be superior.
 
   ## P2SHash vulnerability
 
-BCH still uses 20 byte P2SHashes for smart contracts which opens them up to profitable collision attacks when holding balances upwards of a few hundred thousand USD (see post on [Bitcoin Cash Research forum](https://bitcoincashresearch.org/t/p2sh32-a-long-term-solution-for-80-bit-p2sh-collision-attacks/750)). SHA-gate is less vulnerable to this attack as it only allows operators to add arbitrary data to the state. Currently this is the biggest hurdle for the SHA-gate, but it is an advanced attack to pull off and is planned to be fixed May 2023. A transition to SHA-gate would be gradual and would for safety be halted at 10 million USD or so until BitcoinCash has upgraded to 32bytes P2SH.
+BCH still uses 20 byte P2SHashes for smart contracts which opens them up to profitable collision attacks when holding balances upwards of a few hundred thousand USD (see post on [Bitcoin Cash Research forum](https://bitcoincashresearch.org/t/p2sh32-a-long-term-solution-for-80-bit-p2sh-collision-attacks/750)). SHA-gate is less vulnerable to this attack as it only allows operators to add arbitrary data to the state. Currently this vulnerability is the biggest hurdle for the SHA-gate, but it is an advanced attack to pull off and is planned to be fixed May 2023. A transition to SHA-gate would be gradual and should for safety be halted at 10 million USD or so until BitcoinCash has upgraded to 32bytes P2SH.
 
   ## Diagram
 
-Diagram of how the SHA-gate would work with the new reusable architecture (disregarding the vote-covenant option discussed in the last paragraph).
+Diagram of how the SHA-gate would work with the new reusable architecture (disregarding the vote-covenant option discussed in the "Open design choice" paragraph).
 
 ```mermaid
 graph TD
