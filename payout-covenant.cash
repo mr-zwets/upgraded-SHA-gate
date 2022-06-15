@@ -1,0 +1,26 @@
+pragma cashscript ^0.6.5;
+
+// The Payout_covenant is used to batch Sha-gate withdrawals
+
+// The contract leverages old introspection to get access to tx.hashOutputs
+// a P2PKH output is only 32 bytes in size, so with the standardness limit of
+// 100kb maximum per transaction this covenant can fit ~2900 outputs.
+// The consensus limit on tx size is 1MB so if necessary this covenant can
+// batch withdrawals to ~29,000 outputs with miner help.
+// Another option is to include other Payout covenants in the first one
+// this way there ceases to be a limit on the number of outputs.
+
+// Opcode count: 49 (max 201)
+// Bytesize: 21 (max 520)
+
+contract Payout_covenant(
+    bytes20 hashPayoutOutputs
+) {
+    function payout(
+        pubkey pk, 
+        sig s
+    ) {
+        require(checkSig(s, pk)); // needed for hashpreimage introspection
+        require(tx.hashOutputs == hashPayoutOutputs);
+    }
+}

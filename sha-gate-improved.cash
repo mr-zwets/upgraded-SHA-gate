@@ -1,0 +1,145 @@
+pragma cashscript ^0.7.0;
+
+// Sha-gate covenant enables trust-minimized briding to Smart BCH
+
+// One Sha-gate covenant can bridge any number of deposits to the SBCH sidechain.
+// The return from the sidechain to the mainchain works with miner voting on the P2SH 
+// of a payout covenant proposed by one of the operators. The payout covenant batches
+// withdrawals to any number of addresses once approved after a fixed length voting period. 
+// The Sha-gate would manage a large amount of BCH so withdrawals need to be slow
+// with long voting periods so miner collusion with an operator is sufficiently difficult.
+// The withdrawal function of the contract can be used to perform L1 burning of BCH
+// and to upgrade the contract code or remove malicious/compromised operators.
+
+// Chosen security parameters:
+// - Operator keys: 5 (could fit 8 if needed)
+// - Voting period: 2016 blocks (~2 weeks worth of blocks), after which finishWithdrawal is enabled
+// - Agree-voting threshold for valid withdrawal: 66%
+// - Withdrawal period: 72 blocks (.5 day worth of blocks), after which initWithdrawal is enabled
+//   If no votes are placed at all the withdrawal is also valid.
+// - Minimum bridge amount: 10000 sats
+// Note: more operators is not better per se, as this also means more parties that could
+// become compromised or bribed and act maliciously
+
+// See notes on 20byte P2SHash collision vulnerability
+
+// Opcode count: 184 (max 201)
+// Bytesize: 376 (max 520)
+
+contract Sha_gate(
+   // constant constructor parameters
+   pubkey operKey0, 
+   pubkey operKey1, 
+   pubkey operKey2,
+   pubkey operKey3,
+   pubkey operKey4,
+
+   // constructor parameters of simulated state
+   // last because constructor parameters are added in reverse order
+   bytes8 startPeriodBytes, // updated at initWithdrawal
+   bytes31 payout, // bytes23 P2SH + bytes8 amount 
+   bytes2 voteCountBytes // up to ~32000 or 227 days of votes
+) {
+   // lock extra funds in the covenant to bridge them
+   function lock(
+   ) {
+      // require the SHA-gate covenant to be at index0
+      // allows for more than 2 inputs
+      require(this.activeInputIndex == 0);
+      // briding can have change output so SBCH amount is difference in contract value before and after
+      int amountBridged = tx.outputs[0].value - tx.inputs[0].value;
+      // enforces minimum amount for the bridge
+      // implicity requires tx.outputs[0].value > tx.inputs[0].value
+      require(amountBridged > 10000);
+      // bytecode of SHA-gate covenant should not change
+      bytes23 out = new LockingBytecodeP2SH(hash160(this.activeBytecode));
+      require(tx.outputs[0].lockingBytecode == out);
+   }
+
+   // initialize a withdrawal proposal
+   function initWithdrawal(
+      sig s, 
+      pubkey pk, 
+      bytes31 newPayout // bytes23 P2SH + bytes8 amount
+   ) {
+      require(checkSig(s, pk));
+      require(pk == operKey0 || pk == operKey1 || pk == operKey2 || pk == operKey3 || pk == operKey4);
+      // when initWithdrawal is called late, the voting period might be shorter 
+      // nLocktime is at minimum 2088 blocks in the future, not the current blockheight per se
+      require(tx.time >= int(startPeriodBytes) + 2088); // voting period + withdrawal period
+
+      // check length newPayout before adding to simulated state
+      require(newPayout.length == 31);
+      // update payout P2SH, startPeriodBytes and clear vote count
+      bytes newContract = 0x02000001f + newPayout + 0x08 + bytes8(tx.locktime) + this.activeBytecode.split(44)[1];// 3+32+9
+      // require the SHA-gate covenant to be at index0
+      // so that tx.inputs[0].value is value of SHA-gate covenant
+      require(this.activeInputIndex == 0);
+      int amount = tx.inputs[0].value - 1000; // 1000 is hardcoded fee
+      require(tx.outputs[0].value == amount);
+      bytes23 out = new LockingBytecodeP2SH(hash160(newContract));
+      require(tx.outputs[0].lockingBytecode == out);
+   }
+
+   // miners vote for whether payout of amount to P2SH can be sent or not
+   function vote(
+      bytes coinbaseTx,
+      bool agree
+   ) {
+      // get the coinbaseTxID to check again hash of coinbaseTx
+      bytes coinbaseTxID = tx.inputs[1].outpointTransactionHash;
+      require(hash256(coinbaseTx) == coinbaseTxID);
+      // check parent transaction is coinbase tx by checking
+      // version of 1, inputcount of 1, txID of all zeroes, and the vout all f's
+      require(coinbaseTx.split(82)[0] == 0x01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff);
+      // use coinbase output with vout 0 as input on index 1
+      // this disables the ability for outputs from the same coinbase to vote multiple times
+      // each SHA-gate covenant should use a different hardcoded number for the coinbase vout.
+      require(tx.inputs[1].outpointIndex == 0);
+      
+      // parse coinbaseTx for 3 bytes blockheight in coinbase data field, see BIP 0034
+      bytes coinbaseBlockHeight = coinbaseTx.split(37)[1].split(3)[0]; // 32+4+1
+      // height of the coinbase input must be greater than startPeriod
+      require(int(coinbaseBlockHeight) > int(startPeriodBytes));
+
+      int voteCount = int(voteCountBytes);
+      // implements 66% agree-voting threshold
+      if(agree) {
+         voteCount = voteCount + 1;
+      } else {
+         voteCount = voteCount - 2;
+      }
+      bytes2 newVoteCountBytes = bytes2(voteCount);
+
+      // update vote count
+      bytes newContract = 0x02 + newVoteCountBytes + this.activeBytecode.split(3)[1];// 3
+      require(this.activeInputIndex == 0);
+      // require the SHA-gate covenant to be at index0
+      // so that tx.inputs[0].value is value of SHA-gate covenant
+      int amount = tx.inputs[0].value - 1000; // 1000 is hardcoded fee
+      require(tx.outputs[0].value == amount);
+      bytes23 out = new LockingBytecodeP2SH(hash160(newContract));
+      require(tx.outputs[0].lockingBytecode == out);
+   }
+
+   // finish the withdrawal process
+   function finishWithdrawal(
+   ) {
+      bytes23 payoutP2SH, bytes8 amountPayoutBytes = payout.split(23);
+      int amountPayout = int(amountPayoutBytes); // saves one opcode
+      require(tx.outputs[1].value == amountPayout);
+      require(tx.outputs[1].lockingBytecode == payoutP2SH);
+      require(tx.time >= int(startPeriodBytes) + 2016); // voting period
+      require(int(voteCountBytes) >= 0);
+
+      // clear votes and payout
+      bytes clearedContract = 0x0200001f00000000000000000000000000000000000000000000000000000000000000 + this.activeBytecode.split(35)[1];// 3+32
+      // require the SHA-gate covenant to be at index0
+      // so that tx.inputs[0].value is value of SHA-gate covenant
+      require(this.activeInputIndex == 0);
+      int amountLeft = tx.inputs[0].value - amountPayout - 1000; // 1000 is hardcoded fee
+      require(tx.outputs[0].value == amountLeft);
+      bytes23 out = new LockingBytecodeP2SH(hash160(clearedContract));
+      require(tx.outputs[0].lockingBytecode == out);
+   }
+}
