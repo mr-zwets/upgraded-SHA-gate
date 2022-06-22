@@ -69,11 +69,11 @@ The OP-return `outpoint` requirement would be a solution for the miner voting wi
 
   ## Contract size
 
-The contract was tested with 5 operators and is 182 opcodes and 373 bytes in size. It could fit up to 8 operators within the limits, but adding operators might be more a security risk than a guarantee from some point upwards.
+The contract was compiled with 5 operators and is 194 opcodes and 478 bytes in size. It could fit up to 6 operators within the limits, but adding operators might be more a security risk than a guarantee from some point upwards.
 
 > 5.  A total of 3 operators is perceived as too few
 
- - [x]  Allows for up to 8 operators within the limits
+ - [x]  Allows for up to 6 operators within the limits
 
   ## Discussion of LP markups
 

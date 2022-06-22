@@ -12,7 +12,7 @@ pragma cashscript ^0.7.0;
 // and to upgrade the contract code or remove malicious/compromised operators.
 
 // Chosen security parameters:
-// - Operator keys: 5 (could fit 8 if needed)
+// - Operator keys: 5 (could fit 6)
 // - Voting period: 2016 blocks (~2 weeks worth of blocks), after which finishWithdrawal is enabled
 // - Agree-voting threshold for valid withdrawal: 66%
 // - Withdrawal period: 72 blocks (.5 day worth of blocks), after which initWithdrawal is enabled
@@ -23,16 +23,16 @@ pragma cashscript ^0.7.0;
 
 // See notes on 20byte P2SHash collision vulnerability
 
-// Opcode count: 184 (max 201)
-// Bytesize: 376 (max 520)
+// Opcode count: 194 (max 201)
+// Bytesize: 478 (max 520)
 
 contract Sha_gate(
    // constant constructor parameters
-   pubkey operKey0, 
-   pubkey operKey1, 
-   pubkey operKey2,
-   pubkey operKey3,
-   pubkey operKey4,
+   bytes20 pkhOperator0, 
+   bytes20 pkhOperator1, 
+   bytes20 pkhOperator2,
+   bytes20 pkhOperator3,
+   bytes20 pkhOperator4,
 
    // constructor parameters of simulated state
    // last because constructor parameters are added in reverse order
@@ -63,7 +63,8 @@ contract Sha_gate(
       bytes31 newPayout // bytes23 P2SH + bytes8 amount
    ) {
       require(checkSig(s, pk));
-      require(pk == operKey0 || pk == operKey1 || pk == operKey2 || pk == operKey3 || pk == operKey4);
+      bytes20 pkh = hash160(pk);
+      require(pkh == pkhOperator0 || pkh == pkhOperator1 || pkh == pkhOperator2 || pkh == pkhOperator3 || pkh == pkhOperator4);
       // when initWithdrawal is called late, the voting period might be shorter 
       // nLocktime is at minimum 2088 blocks in the future, not the current blockheight per se
       require(tx.time >= int(startPeriodBytes) + 2088); // voting period + withdrawal period
@@ -91,7 +92,8 @@ contract Sha_gate(
       require(hash256(coinbaseTx) == coinbaseTxID);
       // check parent transaction is coinbase tx by checking
       // version of 1, inputcount of 1, txID of all zeroes, and the vout all f's
-      require(coinbaseTx.split(82)[0] == 0x01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff);
+      bytes32 allZeroTxid= bytes32(0); // saves a ton on bytesize
+      require(coinbaseTx.split(82)[0] == 0x0100000001 + allZeroTxid + 0xffffffff);
       // use coinbase output with vout 0 as input on index 1
       // this disables the ability for outputs from the same coinbase to vote multiple times
       // each SHA-gate covenant should use a different hardcoded number for the coinbase vout.
@@ -133,7 +135,8 @@ contract Sha_gate(
       require(int(voteCountBytes) >= 0);
 
       // clear votes and payout
-      bytes clearedContract = 0x0200001f00000000000000000000000000000000000000000000000000000000000000 + this.activeBytecode.split(35)[1];// 3+32
+      bytes31 allZeroPayout = bytes31(0); // saves a ton on bytesize
+      bytes clearedContract = 0x0200001f+ allZeroPayout + this.activeBytecode.split(35)[1];// 1+2+1+31
       // require the SHA-gate covenant to be at index0
       // so that tx.inputs[0].value is value of SHA-gate covenant
       require(this.activeInputIndex == 0);
