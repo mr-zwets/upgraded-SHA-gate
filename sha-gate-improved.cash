@@ -93,14 +93,14 @@ contract Sha_gate(
       // check parent transaction is coinbase tx by checking
       // version of 1, inputcount of 1, txID of all zeroes, and the vout all f's
       bytes32 allZeroTxid= bytes32(0); // saves a ton on bytesize
-      require(coinbaseTx.split(82)[0] == 0x0100000001 + allZeroTxid + 0xffffffff);
+      require(coinbaseTx.split(41)[0] == 0x0100000001 + allZeroTxid + 0xffffffff); // 5 + 32 +4
       // use coinbase output with vout 0 as input on index 1
       // this disables the ability for outputs from the same coinbase to vote multiple times
       // each SHA-gate covenant should use a different hardcoded number for the coinbase vout.
       require(tx.inputs[1].outpointIndex == 0);
       
-      // parse coinbaseTx for 3 bytes blockheight in coinbase data field, see BIP 0034
-      bytes coinbaseBlockHeight = coinbaseTx.split(37)[1].split(3)[0]; // 32+4+1
+      // parse coinbaseTx for 3 bytes blockheight in coinbase data field after 0x03, see BIP 0034
+      bytes coinbaseBlockHeight = coinbaseTx.split(43)[1].split(3)[0]; // 4+1+32+4+1+1 = 43
       // height of the coinbase input must be greater than startPeriod
       require(int(coinbaseBlockHeight) > int(startPeriodBytes));
 
