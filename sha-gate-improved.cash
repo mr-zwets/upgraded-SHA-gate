@@ -24,7 +24,7 @@ pragma cashscript ^0.7.0;
 // See notes on 20byte P2SHash collision vulnerability
 
 // Opcode count: 194 (max 201)
-// Bytesize: 478 (max 520)
+// Bytesize: 477 (max 520)
 
 contract Sha_gate(
    // constant constructor parameters
@@ -72,7 +72,7 @@ contract Sha_gate(
       // check length newPayout before adding to simulated state
       require(newPayout.length == 31);
       // update payout P2SH, startPeriodBytes and clear vote count
-      bytes newContract = 0x02000001f + newPayout + 0x08 + bytes8(tx.locktime) + this.activeBytecode.split(44)[1];// 3+32+9
+      bytes newContract = 0x0200001f + newPayout + 0x08 + bytes8(tx.locktime) + this.activeBytecode.split(44)[1];// 3+32+9
       // require the SHA-gate covenant to be at index0
       // so that tx.inputs[0].value is value of SHA-gate covenant
       require(this.activeInputIndex == 0);
