@@ -3,36 +3,32 @@ pragma cashscript ^0.7.0;
 // Sha-gate covenant enables trust-minimized briding to Smart BCH
 
 // One Sha-gate covenant can bridge any number of deposits to the SBCH sidechain.
-// The return from the sidechain to the mainchain works with miner voting on the P2SH 
-// of a payout covenant proposed by one of the operators. The payout covenant batches
-// withdrawals to any number of addresses once approved after a fixed length voting period. 
-// The Sha-gate would manage a large amount of BCH so withdrawals need to be slow
-// with long voting periods so miner collusion with an operator is sufficiently difficult.
-// The withdrawal function of the contract can be used to perform L1 burning of BCH
+// The return from the sidechain to the mainchain works in 2 steps 
+// First m-of-n operators propose a withdrawal tranasction from the sidechain covenant.
+// Then miners have a fixed window to vote on the proposal.
+// If a large percentage (now set to 66%°) approves of the withdrawal when the voting period ends 
+// then the withdrawal gets processed. The withdrawl transaction is to a covenant which batches withdrawals 
+// to any number of addresses. The Sha-gate would manage a large amount of BCH so withdrawals 
+// to the mainchain can be slow so there is plenty of time for miner voting within the window.
+// The withdrawal function of the contract can also be used to perform L1 burning of BCH
 // and to upgrade the contract code or remove malicious/compromised operators.
 
 // Chosen security parameters:
-// - Operator keys: 5 (could fit 6)
+// - M-of N for operator keys: 3-of-5 (can easily be extended to 5-of-7 or even larger)
 // - Voting period: 2016 blocks (~2 weeks worth of blocks), after which finishWithdrawal is enabled
 // - Agree-voting threshold for valid withdrawal: 66%
 // - Withdrawal period: 72 blocks (.5 day worth of blocks), after which initWithdrawal is enabled
 //   If no votes are placed at all the withdrawal is also valid.
 // - Minimum bridge amount: 10000 sats
-// Note: more operators is not better per se, as this also means more parties that could
-// become compromised or bribed and act maliciously
 
 // See notes on 20byte P2SHash collision vulnerability
 
-// Opcode count: 194 (max 201)
-// Bytesize: 477 (max 520)
+// Opcode count: 184 (max 201)
+// Bytesize: 384 (max 520)
 
 contract Sha_gate(
    // constant constructor parameters
-   bytes20 pkhOperator0, 
-   bytes20 pkhOperator1, 
-   bytes20 pkhOperator2,
-   bytes20 pkhOperator3,
-   bytes20 pkhOperator4,
+   bytes20 hashOperatorKeys,
 
    // constructor parameters of simulated state
    // last because constructor parameters are added in reverse order
@@ -58,13 +54,22 @@ contract Sha_gate(
 
    // initialize a withdrawal proposal
    function initWithdrawal(
-      sig s, 
-      pubkey pk, 
+      sig s0, 
+      sig s1,  
+      sig s2,
+      pubkey pk0,
+      pubkey pk1,
+      pubkey pk2,
+      pubkey pk3,
+      pubkey pk4,
       bytes31 newPayout // bytes23 P2SH + bytes8 amount
    ) {
-      require(checkSig(s, pk));
-      bytes20 pkh = hash160(pk);
-      require(pkh == pkhOperator0 || pkh == pkhOperator1 || pkh == pkhOperator2 || pkh == pkhOperator3 || pkh == pkhOperator4);
+      // require the provided operator pks to match hashOperatorKeys
+      // does not curently check that they are all the right length
+      require(hash160(pk0+pk1+pk2+pk3+pk4) == hashOperatorKeys);
+      // require 3-of-5 operators to sign the tx to the new state
+      require(checkMultiSig([s0,s1,s2],[pk0,pk1,pk2,pk3,pk4]));
+      
       // when initWithdrawal is called late, the voting period might be shorter 
       // nLocktime is at minimum 2088 blocks in the future, not the current blockheight per se
       require(tx.time >= int(startPeriodBytes) + 2088); // voting period + withdrawal period

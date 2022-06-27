@@ -8,10 +8,15 @@ A description of an improved SHA-gate contract, starting from the problems of th
  2) Trust-minimized bridge only usable for LPs, not normal users
  3) Contract does not check voting period which makes the setup insecure
  4) Impossible OP-return requirement
- 5) A total of 3 operators is perceived as too few
+ 5) Has just 3 operators with only 1 needed to propose a withdrawal
 
-**The first three are major issues**, the fourth seems to be an attempted solution for issue three and the fifth can easily be solved with the extra space enabled by native introspection.
- 
+**The first three are major issues**, the fourth seems to be an attempted solution for issue three and the last problem makes the mechanism a lot less secure.
+
+Just like the Smart BCH teams 
+[official plan for V2](https://smartbch.medium.com/the-plan-for-sha-gate-v2-1f1567f08db0) this version also has a m-of-n multisig of elected enclaves sign off on withdrawals in a first step. Crucially different is the second step where validators have the option to block the withdrawal. In the official version this is done by yet another group of elected enclaves which would have to stake and face slashing for misbehaving. This proposal builds further on V1, where BCH miners are the validators who have the option to block malicious withdrawals.
+
+The rest of the document will go in more detail on the improvement to V1 and some discussion about possible issues that were raised. A full comparision with the plan for a bridge without miner voting will be a different document.
+
 ## New architecture
 
 The first problem comes from the modular architecture of having Liquidity Providers (LPs) create separate SHA-gate contract to bridge a large sum each time. Instead you can have a reusable bridge which can bridge funds to SBCH many times and can process many withdrawals from SBCH back to the mainchain.
@@ -67,13 +72,27 @@ The OP-return `outpoint` requirement would be a solution for the miner voting wi
 
  - [x] New architecture gets rid of the need to signal for which SHA-gate you want to vote for, uniqueness of one vote per coinbase can be required by restricting voting vout to a certain index
 
+  ## Proposing withdrawal
+Instead of providing all public keys in the contract arguments a hash of their concatination can be provided and then only when initializing a new payout proposal will the full public keys matching this hash have to be provided. Then the multisig opcode can be used to require m signatures matching these n public keys. This way the withdrawal proposal has to be signed of by m-of-n operators signifcantly increasing its security. This approach also saves quit a lot on bytesize for the contract functions other than InitWithdrawal. The example code has a 3-of-5 multisig requirement but this can easily be extended because adding extra public keys and signatures to the multisig requirement adds very little in terms of opcodes and bytesize.
+
+> 5.  Has just 3 operators with only 1 needed to propose a withdrawal
+
+ - [x]  Changed initializing a proposal to be done by m-of-n operators, can fit 5-of-7 for example
+
+If it is important that the provided public keys are all the same length this is best checked by adding this requirement in script manually because it is compiled very inefficieently in cashscript. Only big drawback of multisig is that the cashscriptSDK does not support it in a neat way yet, so additional code for this would have to be written.
+
   ## Contract size
+The contract has an opcode count of 184 and a bytesize of 384. This is neatly within the respective 201 an 520 limitations and is even less than version 1's opcode count of 194 and bytesize of 504.
 
-The contract was compiled with 5 operators and is 194 opcodes and 478 bytes in size. It could fit up to 6 operators within the limits, but adding operators might be more a security risk than a guarantee from some point upwards.
+*The contract size is subject to change when the 3-of-5 multisig is replaced with a larger threshold and when the size check for the added publickeys is added manually to the script.*
 
-> 5.  A total of 3 operators is perceived as too few
+  ## Discussion of tracking the covenant
+Some concern was raised that it might be difficult to track simulated state UTXO. First it is important to realize that users bridging from BCH-SBCH will consume the SHA-gate UTXO but will not change its address. Only operators proposing a withdrawl, miner voting or finishing a withdrawal changes the covants address and these happen much less often, so the addres would only change every so many blocks. The new SHA-gate UTXO is always the first output of any spending transaction, the smart contract requires this so there is no need to check this. Simply listening to the address for outgoing transactions spending the UTXO and then using assigning the first output as new UTXO is enough to always have the latest state.
 
- - [x]  Allows for up to 6 operators within the limits
+
+  ## Discussion of 3rd parties using the bridge
+
+A consideration when choosing the design is how hard it is for wallets or other utilities to bridge from BCH -> SBCH. In the first design this did not require interaction with an existing UTXO but instead created a different UTXO for each bridging transaction. Here the 3rd party wanting to bridge funds using SHA-gate would need to querry a server for the latest state of the covenant (as it changes address and has a very long history). Once it has the latest state the transaction is easy, is can spend the SHA-gate UTXO provided that a larger amount is sent back to the same locking bytecode on index0, a 2nd output may be added as a change ouput like in other spending transactions. So 3rd parties using the SHA-gate directly do not need to construct advanced locking or unlocking scripts, just need to resend to the same smart contract address with a bigger amount.
 
   ## Discussion of LP markups
 
