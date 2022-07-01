@@ -32,7 +32,7 @@ contract Sha_gate(
 
    // constructor parameters of simulated state
    // last because constructor parameters are added in reverse order
-   bytes8 startPeriodBytes, // updated at initWithdrawal
+   bytes8 startPeriodBytes, // start of the period in block height, updated at initWithdrawal
    bytes31 payout, // bytes23 P2SH + bytes8 amount 
    bytes2 voteCountBytes // up to ~32000 or 227 days of votes
 ) {
@@ -70,9 +70,9 @@ contract Sha_gate(
       // require 3-of-5 operators to sign the tx to the new state
       require(checkMultiSig([s0,s1,s2],[pk0,pk1,pk2,pk3,pk4]));
       
-      // when initWithdrawal is called late, the voting period might be shorter 
-      // nLocktime is at minimum 2088 blocks in the future, not the current blockheight per se
-      require(tx.time >= int(startPeriodBytes) + 2088); // voting period + withdrawal period
+      // initWithdrawal can only be called at least 2088 blocks after startPeriod
+      // when initWithdrawal is called late, the following voting period is shorter by the number of blocks
+      require(tx.time >= int(startPeriodBytes) + 2088); // startPeriod + (voting period + withdrawal period)
 
       // check length newPayout before adding to simulated state
       require(newPayout.length == 31);
@@ -98,7 +98,7 @@ contract Sha_gate(
       // check parent transaction is coinbase tx by checking
       // version of 1, inputcount of 1, txID of all zeroes, and the vout all f's
       bytes32 allZeroTxid= bytes32(0); // saves a ton on bytesize
-      require(coinbaseTx.split(41)[0] == 0x0100000001 + allZeroTxid + 0xffffffff); // 5 + 32 +4
+      require(coinbaseTx.split(41)[0] == 0x0100000001 + allZeroTxid + 0xffffffff); // 5+32+4 = 41
       // use coinbase output with vout 0 as input on index 1
       // this disables the ability for outputs from the same coinbase to vote multiple times
       // each SHA-gate covenant should use a different hardcoded number for the coinbase vout.
@@ -136,7 +136,8 @@ contract Sha_gate(
       int amountPayout = int(amountPayoutBytes); // saves one opcode
       require(tx.outputs[1].value == amountPayout);
       require(tx.outputs[1].lockingBytecode == payoutP2SH);
-      require(tx.time >= int(startPeriodBytes) + 2016); // voting period
+      // finishWithdrawal can only be called at least 2016 blocks after startPeriod
+      require(tx.time >= int(startPeriodBytes) + 2016); // startPeriod + voting period
       require(int(voteCountBytes) >= 0);
 
       // clear votes and payout

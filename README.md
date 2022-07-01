@@ -1,6 +1,9 @@
 # Upgraded SHA-gate
 
-A description of an improved SHA-gate contract, starting from the problems of the previous implementation.
+This document is a description of an improved SHA-gate contract, starting from the problems of the SHA-gate V1 implementation. First the document goes into the technical changes from V1, then different discussion sections follow addressing common concerns, lastly a comparison table is made comparing V1, the present proposal (an upgraded version of V1) and the SBCH teams plan for V2.
+
+Just like the Smart BCH teams 
+[official plan for V2](https://smartbch.medium.com/the-plan-for-sha-gate-v2-1f1567f08db0) this version also has a m-of-n multisig of elected enclaves sign off on withdrawals in a first step. Crucially different is the second step where monitors have the option to block the withdrawal. In the official version this is done by yet another group of elected enclaves which would have to stake and face slashing for misbehaving. This proposal builds further on V1, where BCH miners are the monitors who have the option to block malicious withdrawals.
 
 ## Problems with V1
 
@@ -11,11 +14,6 @@ A description of an improved SHA-gate contract, starting from the problems of th
  5) Has just 3 operators with only 1 needed to propose a withdrawal
 
 **The first three are major issues**, the fourth seems to be an attempted solution for issue three and the last problem makes the mechanism a lot less secure.
-
-Just like the Smart BCH teams 
-[official plan for V2](https://smartbch.medium.com/the-plan-for-sha-gate-v2-1f1567f08db0) this version also has a m-of-n multisig of elected enclaves sign off on withdrawals in a first step. Crucially different is the second step where monitors have the option to block the withdrawal. In the official version this is done by yet another group of elected enclaves which would have to stake and face slashing for misbehaving. This proposal builds further on V1, where BCH miners are the monitors who have the option to block malicious withdrawals.
-
-The rest of the document will go in more detail on the improvement to V1 and some discussion about possible issues that were raised. A full comparision with the plan for a bridge without miner voting will be a different document.
 
 ## New architecture
 
@@ -127,9 +125,25 @@ Depending on miner software this might or might not be superior.
 
 BCH still uses 20 byte P2SHashes for smart contracts which opens them up to profitable collision attacks when holding balances upwards of a few hundred thousand USD (see post on [Bitcoin Cash Research forum](https://bitcoincashresearch.org/t/p2sh32-a-long-term-solution-for-80-bit-p2sh-collision-attacks/750)). SHA-gate is less vulnerable to this attack as it only allows operators to add arbitrary data to the state. Currently this vulnerability is the biggest hurdle for the SHA-gate, but it is an advanced attack to pull off and is planned to be fixed May 2023. A transition to SHA-gate would be gradual and should for safety be halted at 10 million USD or so until BitcoinCash has upgraded to 32bytes P2SH.
 
+  ## Comparison to SBCH teams Plan for V2
+
+ The upgraded V1 column refers to the current proposal with miner voting
+
+| comparison   |   original V1  | upgraded V1    |  plan for official V2 |
+|----------|:-------------:|:-------------:|:------:|
+| initiating withdrawals | 1-of-n operators| m-of-n operators| m-of-n operators |
+| withdrawals | separate for every withdrawal from SBCH |batched every two weeks | separate for every withdrawal from SBCH |
+| monitors checking withdrawals |   miners   |  miners   |   elected enclaves |
+| number of SHA-gate UTXOs |  one for each BCH -> SBCH bridging | 1 |  one for each BCH -> SBCH bridging | 
+SHA-gate address | changes every few blocks  | changes every few blocks  |  changes only when operators or monitors change |
+
+There are two separate choices up for discussion
+1) whether to have miners or elected enclaves monitor the withdrawals
+2) whether to have one main contract holding all the funds and batch withdrawals or have many separate UTXOs
+
   ## Diagram
 
-Diagram of how the SHA-gate would work with the new reusable architecture (disregarding the vote-covenant option discussed in the "Open design choice" paragraph).
+Diagram of how the miner voting SHA-gate would work with the new reusable architecture (disregarding the vote-covenant option discussed in the "Open design choice" paragraph).
 
 ```mermaid
 graph TD
