@@ -1,6 +1,8 @@
 # Upgraded SHA-gate
 
-This document is a description of an improved SHA-gate contract, starting from the problems of the SHA-gate V1 implementation. First the document goes into the technical changes from V1, then different discussion sections follow addressing common concerns, lastly a comparison table is made comparing V1, the present proposal (an upgraded version of V1) and the SBCH teams plan for V2.
+This document is a description of an upgraded SHA-gate contract, building further on the miner voting ideas of the first implementation. The upgraded contract code is available in this repo and a [working demo](https://sha-gate-demo.netlify.app/) of the upgraded contract live on testnet 4.
+
+First the document goes into the technical changes from V1, then the demo will be briefly discussed, next different discussion sections follow addressing common concerns, lastly a comparison is made comparing V1, the present proposal (an upgraded version of V1) and the SBCH teams plan for V2.
 
 Just like the Smart BCH teams 
 [official plan for V2](https://smartbch.medium.com/the-plan-for-sha-gate-v2-1f1567f08db0) this version also has a m-of-n multisig of elected enclaves sign off on withdrawals in a first step. Crucially different is the second step where monitors have the option to block the withdrawal. In the official version this is done by yet another group of elected enclaves which would have to stake and face slashing for misbehaving. This proposal builds further on V1, where BCH miners are the monitors who have the option to block malicious withdrawals.
@@ -84,6 +86,9 @@ The contract has an opcode count of 184 and a bytesize of 384. This is neatly wi
 
 *The contract size is subject to change when the 3-of-5 multisig is replaced with a larger threshold and when the size check for the added publickeys is added manually to the script.*
 
+  ## Demo
+The [working demo](https://sha-gate-demo.netlify.app/) shows it is not that hard to make a working implementation of the upgraded SHA-gate with tools like [cashscript playground](https://playground.cashscript.org/). The demo contract does not yet use the m-of-n architecture for operators but still a 1-of-n as the Cashscript SDK does not [currently support multisig](https://cashscript.org/docs/language/functions/#checkmultisig). So this would either require an upgrade of the exisiting tooling or departing from the Cashscript SDK.
+
   ## Discussion of malicious hashrate voting
 Because Bitcoin Cash is a minority chain and because miner participation in electing SBCH validators has been low there has been worry about malicious hashrate voting.
 First it is important to restate that miners only vote to reject or approve a withdrawal proposal initiated by m-of-n operators so 1 malicious operator would not be enough to initiate a malicious withdrawal proposal stealing all the funds. When the operators run verifyably authentic software by publishing the enclave attestation rapport associated with their public key it would be very difficult for a majority to collude to sign off on a malicious withdrawal. It is to prevent this case - and unitended software bugs - that hashrate voting is used as a second line of defence.
@@ -97,7 +102,7 @@ To guarantee some active miner participation here has to be active outreach beyo
 *Drivechain incentives miner participation by enabling them to earn sidechain fees without running a sidechain node through blind-merged mining. This is idea is not possible for POS sidechains however.*
 
   ## Discussion of tracking the covenant
-Some concern was raised that it might be difficult to track simulated state UTXO. First it is important to realize that users bridging from BCH-SBCH will consume the SHA-gate UTXO but will not change its address. Only operators proposing a withdrawl, miner voting or finishing a withdrawal changes the covants address and these happen much less often, so the addres would only change every so many blocks. The new SHA-gate UTXO is always the first output of any spending transaction, the smart contract requires this so there is no need to check this. Simply listening to the address for outgoing transactions spending the UTXO and then using assigning the first output as new UTXO is enough to always have the latest state.
+Some concern was raised that it might be difficult to track simulated state UTXO. First it is important to realize that users bridging from BCH-SBCH will consume the SHA-gate UTXO but will not change its address. Only operators proposing a withdrawl, miner voting or finishing a withdrawal changes the covants address and these happen much less often, so the addres would only change every so many blocks. The new SHA-gate UTXO is always the first output of any spending transaction, the smart contract requires this so there is no need to check this. Simply listening to the address for outgoing transactions spending the UTXO and then using assigning the first output as new UTXO is enough to always have the latest state (as demonstarted by the demo). With the CashtokensV2 upgrade, aimed at May 2023, this problem could be fully solved as state could be managed by a separate token.
 
 
   ## Discussion of 3rd parties using the bridge
