@@ -82,7 +82,7 @@ Instead of providing all public keys in the contract arguments a hash of their c
 If it is important that the provided public keys are all the same length this is best checked by adding this requirement in script manually because it is compiled very inefficieently in cashscript. Only big drawback of multisig is that the cashscriptSDK does not support it in a neat way yet, so additional code for this would have to be written.
 
   ## Contract size
-The contract has an opcode count of 184 and a bytesize of 384. This is neatly within the respective 201 an 520 limitations and is even less than version 1's opcode count of 194 and bytesize of 504.
+The contract has an opcode count of 181 and a bytesize of 377. This is neatly within the respective 201 an 520 limitations and is even less than version 1's opcode count of 194 and bytesize of 504.
 
 *The contract size is subject to change when the 3-of-5 multisig is replaced with a larger threshold and when the size check for the added publickeys is added manually to the script.*
 

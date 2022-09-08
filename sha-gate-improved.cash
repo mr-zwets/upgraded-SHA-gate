@@ -23,8 +23,8 @@ pragma cashscript ^0.7.0;
 
 // See notes on 20byte P2SHash collision vulnerability
 
-// Opcode count: 184 (max 201)
-// Bytesize: 384 (max 520)
+// Opcode count: 181 (max 201)
+// Bytesize: 377 (max 520)
 
 contract Sha_gate(
    // constant constructor parameters
@@ -48,8 +48,7 @@ contract Sha_gate(
       // implicity requires tx.outputs[0].value > tx.inputs[0].value
       require(amountBridged > 10000);
       // bytecode of SHA-gate covenant should not change
-      bytes23 out = new LockingBytecodeP2SH(hash160(this.activeBytecode));
-      require(tx.outputs[0].lockingBytecode == out);
+      require(tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode);
    }
 
    // initialize a withdrawal proposal
