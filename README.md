@@ -102,7 +102,9 @@ To guarantee some active miner participation here has to be active outreach beyo
 *Drivechain incentives miner participation by enabling them to earn sidechain fees without running a sidechain node through blind-merged mining. This is idea is not possible for POS sidechains however.*
 
   ## Discussion of tracking the covenant
-Some concern was raised that it might be difficult to track simulated state UTXO. First it is important to realize that users bridging from BCH-SBCH will consume the SHA-gate UTXO but will not change its address. Only operators proposing a withdrawl, miner voting or finishing a withdrawal changes the covants address and these happen much less often, so the addres would only change every so many blocks. The new SHA-gate UTXO is always the first output of any spending transaction, the smart contract requires this so there is no need to check this. Simply listening to the address for outgoing transactions spending the UTXO and then using assigning the first output as new UTXO is enough to always have the latest state (as demonstarted by the demo). With the CashtokensV2 upgrade, aimed at May 2023, this problem could be fully solved as state could be managed by a separate token.
+Some concern was raised that it might be difficult to track simulated state UTXO. First it is important to realize that users bridging from BCH-SBCH will consume the SHA-gate UTXO but will not change its address. Only operators proposing a withdrawl, miner voting or finishing a withdrawal changes the covants address and these happen much less often, so the addres would only change every so many blocks. The new SHA-gate UTXO is always the first output of any spending transaction, the smart contract requires this so there is no need to check this. Simply listening to the address for outgoing transactions spending the UTXO and then using assigning the first output as new UTXO is enough to always have the latest state (as demonstrated by the demo).
+
+With the Cashtokens upgrade, (activated May 2023), this is solved as state can be kept in the `nftCommitment` (see the cashtokens-version).
 
 
   ## Discussion of 3rd parties using the bridge
